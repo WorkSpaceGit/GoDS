@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ґо</title>
+    
+    <!-- PWA -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Ґо">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#000000">
+    
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23dcb35c'/><path d='M20,20 L20,80 M50,20 L50,80 M80,20 L80,80 M20,20 L80,20 M20,50 L80,50 M20,80 L80,80' stroke='%23000' stroke-width='2' fill='none'/><circle cx='20' cy='20' r='3' fill='%23000'/><circle cx='50' cy='20' r='3' fill='%23000'/><circle cx='80' cy='20' r='3' fill='%23000'/><circle cx='20' cy='50' r='3' fill='%23000'/><circle cx='50' cy='50' r='3' fill='%23000'/><circle cx='80' cy='50' r='3' fill='%23000'/><circle cx='20' cy='80' r='3' fill='%23000'/><circle cx='50' cy='80' r='3' fill='%23000'/><circle cx='80' cy='80' r='3' fill='%23000'/></svg>">
+    
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #1a1a1a;
+            --bg-tertiary: #2a2a2a;
+            --text-primary: #f0f0f0;
+            --text-secondary: #aaaaaa;
+            --accent-blue: #3b82f6;
+            --accent-red: #ef4444;
+            --accent-green: #10b981;
+            --board-color: #dcb35c;
+            --grid-color: #000000;
+            --stone-black: radial-gradient(circle at 30% 30%, #333333, #000000);
+            --stone-white: radial-gradient(circle at 30% 30%, #ffffff, #e5e5e5);
+            --border-color: #333;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            padding: 12px;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            padding: 15px 0 20px;
+            margin-bottom: 15px;
+        }
+        
+        h1 {
+            font-size: 2rem;
+            font-weight: 300;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+            background: linear-gradient(90deg, var(--text-primary), var(--text-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .game-area {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        @media (min-width: 900px) {
+            .game-area {
+                flex-direction: row;
+                align-items: flex-start;
+            }
+        }
+        
+        .board-section {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .board-container {
+            position: relative;
+            width: 100%;
+            max-width: min(95vh, 550px);
+            margin: 0 auto;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .board {
+            position: relative;
+            width: 100%;
+            background: var(--board-color);
+            border: 2px solid var(--grid-color);
+            border-radius: 3px;
+            aspect-ratio: 1/1;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+        .grid-line {
+            position: absolute;
+            background: var(--grid-color);
+        }
+        
+        .horizontal {
+            width: 100%;
+            height: 1px;
+            left: 0;
+        }
+        
+        .vertical {
+            height: 100%;
+            width: 1px;
+            top: 0;
+        }
+        
+        .star-point {
+            position: absolute;
+            width: 5px;
+            height: 5px;
+            background: var(--grid-color);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        .stone {
+            position: absolute;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            pointer-events: none;
+            z-index: 2;
+        }
+        
+        .stone.black {
+            background: var(--stone-black);
+        }
+        
+        .stone.white {
+            background: var(--stone-white);
+        }
+        
+        .stone.last-move::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 22%;
+            height: 22%;
+            background: rgba(255, 215, 0, 0.5);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        .controls-section {
+            min-width: 320px;
+        }
+        
+        .panel {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 15px;
+        }
+        
+        .players {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .player {
+            text-align: center;
+            padding: 18px 12px;
+            border-radius: 10px;
+            background: var(--bg-tertiary);
+            border: 2px solid transparent;
+            transition: border-color 0.2s ease;
+        }
+        
+        .player.active {
+            border-color: var(--accent-blue);
+            background: #1e3a5f;
+        }
+        
+        .player-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .player-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .player-total {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin: 8px 0;
+            color: var(--text-primary);
+        }
+        
+        .player-details {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+        
+        .player-details span {
+            display: inline-block;
+            margin: 0 4px;
+        }
+        
+        .actions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin: 20px 0;
+        }
+        
+        .btn {
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: transform 0.1s ease, opacity 0.1s ease;
+            font-family: inherit;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+        .btn:active {
+            transform: scale(0.98);
+            opacity: 0.9;
+        }
+        
+        .btn-primary {
+            background: var(--accent-blue);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: #374151;
+            color: var(--text-primary);
+            border: 1px solid #4b5563;
+        }
+        
+        .btn-danger {
+            background: var(--accent-red);
+            color: white;
+        }
+        
+        .ko-warning {
+            text-align: center;
+            padding: 12px;
+            background: rgba(239, 68, 68, 0.1);
+            border-radius: 8px;
+            margin: 15px 0;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #f87171;
+            font-weight: 500;
+            display: none;
+        }
+        
+        .results-panel {
+            background: var(--bg-tertiary);
+            border-radius: 10px;
+            padding: 0;
+            margin-top: 20px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            display: none;
+        }
+        
+        .results-header {
+            text-align: center;
+            padding: 15px;
+            background: #2a2a2a;
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 500;
+            letter-spacing: 1px;
+            color: var(--text-primary);
+        }
+        
+        .breakdown {
+            padding: 20px;
+        }
+        
+        .player-breakdown {
+            margin-bottom: 20px;
+        }
+        
+        .breakdown-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #444;
+        }
+        
+        .breakdown-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+        }
+        
+        .breakdown-row.komi {
+            color: var(--accent-green);
+        }
+        
+        .breakdown-total {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            margin-top: 8px;
+            border-top: 2px solid #444;
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--text-primary);
+        }
+        
+        .final-message {
+            text-align: center;
+            padding: 20px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--accent-green);
+            background: rgba(16, 185, 129, 0.1);
+            border-top: 1px solid var(--border-color);
+        }
+        
+        footer {
+            text-align: center;
+            padding: 20px 0 10px;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-top: 10px;
+        }
+        
+        @media (max-width: 600px) {
+            .players {
+                grid-template-columns: 1fr;
+            }
+            
+            .actions {
+                grid-template-columns: 1fr;
+            }
+            
+            .board-container {
+                padding: 10px;
+            }
+            
+            .panel {
+                padding: 15px;
+            }
+            
+            .breakdown {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Ґо</h1>
+            <div style="color: var(--text-secondary); font-size: 0.95rem;">Падук • Вейці</div>
+        </header>
+        
+        <div class="game-area">
+            <div class="board-section">
+                <div class="board-container">
+                    <div class="board" id="go-board"></div>
+                </div>
+            </div>
+            
+            <div class="controls-section">
+                <div class="panel">
+                    <div class="players">
+                        <div class="player black active" id="player-black">
+                            <div class="player-header">
+                                <span class="player-name">⚫ ЧОРНІ</span>
+                            </div>
+                            <div class="player-total" id="black-total">0</div>
+                            <div class="player-details">
+                                <span>Кам.: <span id="black-stones">0</span></span>
+                                <span>│</span>
+                                <span>Тер.: <span id="black-territory">0</span></span>
+                                <span>│</span>
+                                <span>Зах.: <span id="black-captured">0</span></span>
+                            </div>
+                        </div>
+                        
+                        <div class="player white" id="player-white">
+                            <div class="player-header">
+                                <span class="player-name">⚪ БІЛІ</span>
+                            </div>
+                            <div class="player-total" id="white-total">0</div>
+                            <div class="player-details">
+                                <span>Кам.: <span id="white-stones">0</span></span>
+                                <span>│</span>
+                                <span>Тер.: <span id="white-territory">0</span></span>
+                                <span>│</span>
+                                <span>Зах.: <span id="white-captured">0</span></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="ko-warning" id="ko-warning">
+                        ⚠️ Правило "ко" - оберіть інший хід
+                    </div>
+                    
+                    <div class="actions">
+                        <button class="btn btn-primary" id="pass-btn">Пас</button>
+                        <button class="btn btn-primary" id="score-btn">Підрахунок</button>
+                        <button class="btn btn-secondary" id="undo-btn">Скасувати хід</button>
+                        <button class="btn btn-danger" id="reset-btn">Нова гра</button>
+                    </div>
+                    
+                    <div class="results-panel" id="results-panel">
+                        <div class="results-header">════════ РЕЗУЛЬТАТ ════════</div>
+                        
+                        <div class="breakdown">
+                            <div class="player-breakdown">
+                                <div class="breakdown-title">
+                                    <span>⚫ ЧОРНІ</span>
+                                    <span id="result-black-total">0</span>
+                                </div>
+                                <div class="breakdown-row">
+                                    <span>Викладені камені:</span>
+                                    <span id="result-black-stones">0</span>
+                                </div>
+                                <div class="breakdown-row">
+                                    <span>Захоплена територія:</span>
+                                    <span id="result-black-territory">0</span>
+                                </div>
+                                <div class="breakdown-row">
+                                    <span>Захоплені камені:</span>
+                                    <span id="result-black-captured">0</span>
+                                </div>
+                                <div class="breakdown-total">
+                                    <span>Всього:</span>
+                                    <span id="final-black-total">0</span>
+                                </div>
+                            </div>
+                            
+                            <div class="player-breakdown">
+                                <div class="breakdown-title">
+                                    <span>⚪ БІЛІ</span>
+                                    <span id="result-white-total">0</span>
+                                </div>
+                                <div class="breakdown-row">
+                                    <span>Викладені камені:</span>
+                                    <span id="result-white-stones">0</span>
+                                </div>
+                                <div class="breakdown-row">
+                                    <span>Захоплена територія:</span>
+                                    <span id="result-white-territory">0</span>
+                                </div>
+                                <div class="breakdown-row">
+                                    <span>Захоплені камені:</span>
+                                    <span id="result-white-captured">0</span>
+                                </div>
+                                <div class="breakdown-row komi">
+                                    <span>Компенсація (комі):</span>
+                                    <span>6.5</span>
+                                </div>
+                                <div class="breakdown-total">
+                                    <span>Всього:</span>
+                                    <span id="final-white-total">0</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="final-message" id="final-message"></div>
+
+                    </div>
+                </div>
+                
+                <footer>
+                    Додайте на домашній екран для повноекранного режиму
+                </footer>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        'use strict';
+
+        class SimpleGoGame {
+            constructor() {
+                this.SIZE = 9;
+                this.EMPTY = 0;
+                this.BLACK = 1;
+                this.WHITE = 2;
+                
+                // Простий 2D масив
+                this.board = Array(this.SIZE).fill().map(() => Array(this.SIZE).fill(this.EMPTY));
+                this.currentPlayer = this.BLACK;
+                this.koPosition = null;
+                this.lastMove = null;
+                this.history = []; // Для undo
+                this.gameOver = false;
+                this.passCount = 0;
+                this.captured = { black: 0, white: 0 };
+                
+                // Простий кеш рахунку
+                this.scoreCache = null;
+                this.scoreDirty = true;
+                
+                // Попередньо розраховані сусіди
+                this.neighbors = this.precalculateNeighbors();
+                this.stoneElements = new Map();
+                
+                this.init();
+            }
+            
+            precalculateNeighbors() {
+                const neighbors = [];
+                for (let x = 0; x < this.SIZE; x++) {
+                    neighbors[x] = [];
+                    for (let y = 0; y < this.SIZE; y++) {
+                        const list = [];
+                        if (x > 0) list.push([x-1, y]);
+                        if (x < this.SIZE-1) list.push([x+1, y]);
+                        if (y > 0) list.push([x, y-1]);
+                        if (y < this.SIZE-1) list.push([x, y+1]);
+                        neighbors[x][y] = list;
+                    }
+                }
+                return neighbors;
+            }
+            
+            init() {
+                this.renderBoard();
+                this.setupEvents();
+                this.updateScore();
+                this.updateUI();
+                
+                // PWA
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.register('data:application/javascript,' + encodeURIComponent(`
+                        self.addEventListener('install', e => self.skipWaiting());
+                        self.addEventListener('activate', e => e.waitUntil(clients.claim()));
+                    `));
+                }
+            }
+            
+            renderBoard() {
+                const board = document.getElementById('go-board');
+                board.innerHTML = '';
+                
+                const cellSize = 100 / (this.SIZE - 1);
+                
+                // Сітка
+                for (let i = 0; i < this.SIZE; i++) {
+                    const hLine = document.createElement('div');
+                    hLine.className = 'grid-line horizontal';
+                    hLine.style.top = `${i * cellSize}%`;
+                    board.appendChild(hLine);
+                    
+                    const vLine = document.createElement('div');
+                    vLine.className = 'grid-line vertical';
+                    vLine.style.left = `${i * cellSize}%`;
+                    board.appendChild(vLine);
+                }
+                
+                // Зіркові точки
+                const stars = [[2,2], [2,6], [6,2], [6,6], [4,4]];
+                stars.forEach(([x, y]) => {
+                    const star = document.createElement('div');
+                    star.className = 'star-point';
+                    star.style.left = `${x * cellSize}%`;
+                    star.style.top = `${y * cellSize}%`;
+                    board.appendChild(star);
+                });
+                
+                this.cellSize = cellSize;
+                this.boardElement = board;
+                
+                // Обробник кліків
+                const handleClick = (e) => {
+                    if (this.gameOver) return;
+                    
+                    const rect = board.getBoundingClientRect();
+                    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                    
+                    const x = clientX - rect.left;
+                    const y = clientY - rect.top;
+                    
+                    const cellX = Math.min(this.SIZE - 1, Math.max(0, 
+                        Math.round((y / rect.height) * (this.SIZE - 1))));
+                    const cellY = Math.min(this.SIZE - 1, Math.max(0,
+                        Math.round((x / rect.width) * (this.SIZE - 1))));
+                    
+                    this.placeStone(cellX, cellY);
+                };
+                
+                board.addEventListener('click', handleClick);
+                board.addEventListener('touchstart', (e) => {
+                    if (e.touches.length === 1) {
+                        e.preventDefault();
+                        handleClick(e);
+                    }
+                }, { passive: false });
+            }
+            
+            placeStone(x, y) {
+                if (this.board[x][y] !== this.EMPTY) return;
+                
+                // Перевірка ко
+                if (this.koPosition && this.koPosition.x === x && this.koPosition.y === y) {
+                    this.showMessage('ko-warning');
+                    return;
+                }
+                
+                // Зберігаємо стан для undo та ко-перевірки
+                const boardSnapshot = this.board.map(row => [...row]);
+                const capturedSnapshot = {...this.captured};
+                const koSnapshot = this.koPosition ? {...this.koPosition} : null;
+                
+                // Ставимо камінь
+                this.board[x][y] = this.currentPlayer;
+                
+                // Захоплюємо камені
+                const captured = this.captureAdjacentGroups(x, y);
+                if (captured > 0) {
+                    const opponent = this.currentPlayer === this.BLACK ? this.WHITE : this.BLACK;
+                    if (opponent === this.BLACK) this.captured.black += captured;
+                    else this.captured.white += captured;
+                }
+                
+                // Перевірка самогубства
+                if (captured === 0 && !this.hasLiberties(x, y)) {
+                    // Скасовуємо хід
+                    this.board = boardSnapshot;
+                    this.captured = capturedSnapshot;
+                    return;
+                }
+                
+                // Ко-перевірка (порівнюємо з попереднім станом з історії)
+                if (this.history.length > 0) {
+                    const prevState = this.history[this.history.length - 1];
+                    if (this.boardsEqual(this.board, prevState.board)) {
+                        // Знайдено ко - скасовуємо хід
+                        this.board = boardSnapshot;
+                        this.captured = capturedSnapshot;
+                        this.koPosition = koSnapshot;
+                        this.showMessage('ko-warning');
+                        return;
+                    }
+                }
+                
+                // Встановлюємо ко-позицію, якщо був захоплений один камінь
+                this.koPosition = captured === 1 ? this.findExactlyOneCapture(boardSnapshot) : null;
+                
+                // Зберігаємо хід в історію
+                this.history.push({
+                    board: boardSnapshot,
+                    captured: capturedSnapshot,
+                    koPosition: koSnapshot,
+                    player: this.currentPlayer,
+                    x, y,
+                    capturedCount: captured
+                });
+                
+                // Обмежуємо історію
+                if (this.history.length > 50) {
+                    this.history = this.history.slice(-30);
+                }
+                
+                this.lastMove = {x, y};
+                this.passCount = 0;
+                this.currentPlayer = this.currentPlayer === this.BLACK ? this.WHITE : this.BLACK;
+                this.scoreDirty = true;
+                
+                this.updateStones();
+                this.updateUI();
+                this.hideMessage('ko-warning');
+            }
+            
+            captureAdjacentGroups(x, y) {
+                const opponent = this.currentPlayer === this.BLACK ? this.WHITE : this.BLACK;
+                let totalCaptured = 0;
+                
+                for (const [nx, ny] of this.neighbors[x][y]) {
+                    if (this.board[nx][ny] === opponent) {
+                        const group = this.getGroup(nx, ny);
+                        if (!this.groupHasLiberties(group)) {
+                            totalCaptured += group.length;
+                            // Видаляємо групу
+                            for (const [gx, gy] of group) {
+                                this.board[gx][gy] = this.EMPTY;
+                            }
+                        }
+                    }
+                }
+                
+                return totalCaptured;
+            }
+            
+            getGroup(x, y, visited = new Set()) {
+                const color = this.board[x][y];
+                if (color === this.EMPTY) return [];
+                
+                const group = [];
+                const stack = [[x, y]];
+                
+                while (stack.length > 0) {
+                    const [cx, cy] = stack.pop();
+                    const key = `${cx},${cy}`;
+                    
+                    if (visited.has(key)) continue;
+                    visited.add(key);
+                    group.push([cx, cy]);
+                    
+                    for (const [nx, ny] of this.neighbors[cx][cy]) {
+                        if (this.board[nx][ny] === color && !visited.has(`${nx},${ny}`)) {
+                            stack.push([nx, ny]);
+                        }
+                    }
+                }
+                
+                return group;
+            }
+            
+            groupHasLiberties(group) {
+                for (const [x, y] of group) {
+                    for (const [nx, ny] of this.neighbors[x][y]) {
+                        if (this.board[nx][ny] === this.EMPTY) {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+            
+            hasLiberties(x, y) {
+                const group = this.getGroup(x, y);
+                return this.groupHasLiberties(group);
+            }
+            
+            findExactlyOneCapture(previousBoard) {
+                // Знаходимо позицію, де був рівно один камінь до захоплення
+                for (let x = 0; x < this.SIZE; x++) {
+                    for (let y = 0; y < this.SIZE; y++) {
+                        if (this.board[x][y] === this.EMPTY && previousBoard[x][y] !== this.EMPTY) {
+                            // Перевіряємо, чи був це саме один камінь
+                            let count = 0;
+                            for (let i = 0; i < this.SIZE; i++) {
+                                for (let j = 0; j < this.SIZE; j++) {
+                                    if (this.board[i][j] === this.EMPTY && previousBoard[i][j] !== this.EMPTY) {
+                                        count++;
+                                    }
+                                }
+                            }
+                            if (count === 1) return {x, y};
+                        }
+                    }
+                }
+                return null;
+            }
+            
+            boardsEqual(a, b) {
+                for (let i = 0; i < this.SIZE; i++) {
+                    for (let j = 0; j < this.SIZE; j++) {
+                        if (a[i][j] !== b[i][j]) return false;
+                    }
+                }
+                return true;
+            }
+            
+            updateStones() {
+                // Оновлюємо всі камені (для 9×9 це дешево)
+                this.stoneElements.forEach(stone => stone.remove());
+                this.stoneElements.clear();
+                
+                for (let x = 0; x < this.SIZE; x++) {
+                    for (let y = 0; y < this.SIZE; y++) {
+                        const color = this.board[x][y];
+                        if (color !== this.EMPTY) {
+                            const stone = document.createElement('div');
+                            stone.className = `stone ${color === this.BLACK ? 'black' : 'white'}`;
+                            stone.style.left = `${y * this.cellSize}%`;
+                            stone.style.top = `${x * this.cellSize}%`;
+                            stone.style.width = `${this.cellSize * 0.85}%`;
+                            stone.style.height = `${this.cellSize * 0.85}%`;
+                            
+                            if (this.lastMove && this.lastMove.x === x && this.lastMove.y === y) {
+                                stone.classList.add('last-move');
+                            }
+                            
+                            this.boardElement.appendChild(stone);
+                            this.stoneElements.set(`${x},${y}`, stone);
+                        }
+                    }
+                }
+            }
+            
+            updateScore() {
+                if (!this.scoreDirty && this.scoreCache) {
+                    return this.scoreCache;
+                }
+                
+                // Рахуємо камені
+                let blackStones = 0, whiteStones = 0;
+                for (let x = 0; x < this.SIZE; x++) {
+                    for (let y = 0; y < this.SIZE; y++) {
+                        if (this.board[x][y] === this.BLACK) blackStones++;
+                        if (this.board[x][y] === this.WHITE) whiteStones++;
+                    }
+                }
+                
+                // Рахуємо територію (тільки якщо потрібно для гри)
+                const territory = this.calculateTerritory();
+                
+                const blackScore = blackStones + territory.black + this.captured.white;
+                const whiteScore = whiteStones + territory.white + this.captured.black + 6.5;
+                
+                this.scoreCache = {
+                    black: {
+                        stones: blackStones,
+                        territory: territory.black,
+                        captured: this.captured.white,
+                        total: blackScore
+                    },
+                    white: {
+                        stones: whiteStones,
+                        territory: territory.white,
+                        captured: this.captured.black,
+                        komi: 6.5,
+                        total: whiteScore
+                    }
+                };
+                
+                this.scoreDirty = false;
+                return this.scoreCache;
+            }
+            
+            calculateTerritory() {
+                // Простий flood-fill для 9×9
+                const territory = { black: 0, white: 0 };
+                const visited = new Set();
+                
+                for (let x = 0; x < this.SIZE; x++) {
+                    for (let y = 0; y < this.SIZE; y++) {
+                        if (this.board[x][y] === this.EMPTY && !visited.has(`${x},${y}`)) {
+                            const area = this.floodFillTerritory(x, y, visited);
+                            if (area.bordersBlack && !area.bordersWhite) territory.black += area.size;
+                            if (area.bordersWhite && !area.bordersBlack) territory.white += area.size;
+                        }
+                    }
+                }
+                
+                return territory;
+            }
+            
+            floodFillTerritory(x, y, visited) {
+                const area = { size: 0, bordersBlack: false, bordersWhite: false };
+                const stack = [[x, y]];
+                
+                while (stack.length > 0) {
+                    const [cx, cy] = stack.pop();
+                    const key = `${cx},${cy}`;
+                    
+                    if (visited.has(key)) continue;
+                    visited.add(key);
+                    
+                    if (this.board[cx][cy] === this.EMPTY) {
+                        area.size++;
+                        for (const [nx, ny] of this.neighbors[cx][cy]) {
+                            if (!visited.has(`${nx},${ny}`)) {
+                                stack.push([nx, ny]);
+                            }
+                        }
+                    } else {
+                        if (this.board[cx][cy] === this.BLACK) area.bordersBlack = true;
+                        if (this.board[cx][cy] === this.WHITE) area.bordersWhite = true;
+                    }
+                }
+                
+                return area;
+            }
+            
+            updateUI() {
+                const score = this.updateScore();
+                
+                // Основна панель
+                document.getElementById('black-stones').textContent = score.black.stones;
+                document.getElementById('black-territory').textContent = score.black.territory;
+                document.getElementById('black-captured').textContent = score.black.captured;
+                document.getElementById('black-total').textContent = Math.floor(score.black.total);
+                
+                document.getElementById('white-stones').textContent = score.white.stones;
+                document.getElementById('white-territory').textContent = score.white.territory;
+                document.getElementById('white-captured').textContent = score.white.captured;
+                document.getElementById('white-total').textContent = Math.floor(score.white.total);
+                
+                // Активний гравець
+                document.getElementById('player-black').classList.toggle('active', this.currentPlayer === this.BLACK);
+                document.getElementById('player-white').classList.toggle('active', this.currentPlayer === this.WHITE);
+            }
+            
+            undoMove() {
+                if (this.history.length === 0) return;
+                
+                const lastMove = this.history.pop();
+                this.board = lastMove.board;
+                this.captured = lastMove.captured;
+                this.koPosition = lastMove.koPosition;
+                this.currentPlayer = lastMove.player;
+                this.lastMove = lastMove.x !== undefined ? {x: lastMove.x, y: lastMove.y} : null;
+                
+                this.gameOver = false;
+                this.scoreDirty = true;
+                
+                document.getElementById('results-panel').style.display = 'none';
+                this.updateStones();
+                this.updateUI();
+            }
+            
+            pass() {
+                // Зберігаємо пас в історію
+                this.history.push({
+                    board: this.board.map(row => [...row]),
+                    captured: {...this.captured},
+                    koPosition: this.koPosition,
+                    player: this.currentPlayer,
+                    pass: true
+                });
+                
+                this.passCount++;
+                this.koPosition = null;
+                this.lastMove = null;
+                this.currentPlayer = this.currentPlayer === this.BLACK ? this.WHITE : this.BLACK;
+                
+                if (this.passCount >= 2) {
+                    this.endGame();
+                }
+                
+                this.updateUI();
+            }
+            
+            endGame() {
+                this.gameOver = true;
+                this.showDetailedResults();
+                
+                document.getElementById('player-black').classList.remove('active');
+                document.getElementById('player-white').classList.remove('active');
+            }
+            
+            showDetailedResults() {
+                const score = this.updateScore();
+                const resultsPanel = document.getElementById('results-panel');
+                const finalMessage = document.getElementById('final-message');
+                
+                document.getElementById('result-black-stones').textContent = score.black.stones;
+                document.getElementById('result-black-territory').textContent = score.black.territory;
+                document.getElementById('result-black-captured').textContent = score.black.captured;
+                document.getElementById('final-black-total').textContent = score.black.total.toFixed(1);
+                document.getElementById('result-black-total').textContent = score.black.total.toFixed(1);
+                
+                document.getElementById('result-white-stones').textContent = score.white.stones;
+                document.getElementById('result-white-territory').textContent = score.white.territory;
+                document.getElementById('result-white-captured').textContent = score.white.captured;
+                document.getElementById('final-white-total').textContent = score.white.total.toFixed(1);
+                document.getElementById('result-white-total').textContent = score.white.total.toFixed(1);
+                
+                const diff = Math.abs(score.black.total - score.white.total);
+                let message = '';
+                
+                if (score.white.total > score.black.total) {
+                    message = `Білі перемагають на ${diff.toFixed(1)} очка!`;
+                } else if (score.black.total > score.white.total) {
+                    message = `Чорні перемагають на ${diff.toFixed(1)} очка!`;
+                } else {
+                    message = 'Нічия!';
+                }
+                
+                finalMessage.textContent = message;
+                resultsPanel.style.display = 'block';
+                
+                if (window.innerWidth < 900) {
+                    resultsPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            }
+            
+            resetGame() {
+                this.board = Array(this.SIZE).fill().map(() => Array(this.SIZE).fill(this.EMPTY));
+                this.currentPlayer = this.BLACK;
+                this.koPosition = null;
+                this.lastMove = null;
+                this.history = [];
+                this.gameOver = false;
+                this.passCount = 0;
+                this.captured = { black: 0, white: 0 };
+                this.scoreCache = null;
+                this.scoreDirty = true;
+                
+                this.stoneElements.forEach(stone => stone.remove());
+                this.stoneElements.clear();
+                
+                document.getElementById('results-panel').style.display = 'none';
+                this.hideMessage('ko-warning');
+                this.updateUI();
+            }
+            
+            showMessage(id) {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.style.display = 'block';
+                    setTimeout(() => el.style.display = 'none', 1500);
+                }
+            }
+            
+            hideMessage(id) {
+                const el = document.getElementById(id);
+                if (el) el.style.display = 'none';
+            }
+            
+            setupEvents() {
+                document.getElementById('pass-btn').addEventListener('click', () => this.pass());
+                document.getElementById('score-btn').addEventListener('click', () => {
+                    if (!this.gameOver) this.endGame();
+                });
+                document.getElementById('undo-btn').addEventListener('click', () => this.undoMove());
+                document.getElementById('reset-btn').addEventListener('click', () => this.resetGame());
+                
+                // Запобігання масштабуванню
+                document.addEventListener('touchmove', (e) => {
+                    if (e.touches.length > 1) e.preventDefault();
+                }, { passive: false });
+                
+                if (window.navigator.standalone) {
+                    document.body.style.padding = '5px';
+                }
+            }
+        }
+        
+        let game;
+        document.addEventListener('DOMContentLoaded', () => {
+            game = new SimpleGoGame();
+        });
+    </script>
+</body>
+</html>
